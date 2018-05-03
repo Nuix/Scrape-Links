@@ -4,7 +4,7 @@ Scrape Links
 
 ![Last tested in Nuix 7.4](https://img.shields.io/badge/Nuix-7.4-green.svg)
 
-View the GitHub project [here](https://github.com/NuixSDK/Scrape-Links) or download the latest release [here](https://github.com/NuixSDK/Scrape-Links/releases).
+View the GitHub project [here](https://github.com/Nuix/Scrape-Links) or download the latest release [here](https://github.com/Nuix/Scrape-Links/releases).
 
 # Overview
 
