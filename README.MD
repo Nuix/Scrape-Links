@@ -2,7 +2,7 @@
 Scrape Links
 ============
 
-![Last tested in Nuix 7.4](https://img.shields.io/badge/Nuix-7.4-green.svg)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](http://www.apache.org/licenses/LICENSE-2.0) ![This script was last tested in Nuix 7.8](https://img.shields.io/badge/Script%20Tested%20in%20Nuix-7.8-green.svg)
 
 View the GitHub project [here](https://github.com/Nuix/Scrape-Links) or download the latest release [here](https://github.com/Nuix/Scrape-Links/releases).
 
@@ -10,9 +10,27 @@ View the GitHub project [here](https://github.com/Nuix/Scrape-Links) or download
 
 **Written By:** Jason Wells
 
-The body of an email may contain HTML hyper links.  The text captured by Nuix upon loading these emails will contain the link's displayed text, which may not contain the link's URL.
+The body of an email may contain HTML hyper links.  The text captured by Nuix upon loading these emails will contain the link's displayed text, which may not contain the link's URL.  Take this contrived example of an HTML email body:
 
-This script scrapes URLs from emails by first exporting them to a temporary location as EML files.  Since EML files are essentially a structured text format, this script is then able to use a regular expression to parse out URLs within each email.  The parsed URLs are then filtered to just those of interest based on additional filter regular expressions you provide.
+```html
+Hey Jason,
+
+	Check out <a href="http://www.github.com/Nuix">this website</a>.  There are a bunch of Nuix scripts there.
+```
+
+The text only rendering of this may look like the following:
+
+```
+Hey Jason,
+
+	Check out this website.  There are a bunch of Nuix scripts there.
+```
+
+The link's display text is preserved, but the URL it linked to is not.
+
+This script scrapes URLs from emails by first exporting them to a temporary location as EML files.  Since EML files are essentially a structured text format, this script is then able to use a regular expression to parse out URLs within each email.
+
+The parsed URLs can optionally be filtered further to just those of interest based on additional filter regular expressions you provide.  This could be used for example to only list URLs that link to a particular set of websites, etc.
 
 # Getting Started
 
@@ -35,14 +53,22 @@ Begin by downloading the latest release.  Extract the contents of the archive in
 	- **Apply Custom Metadata**: When checked, each items which is found to have at least one passing URL will have a custom metadata field applied containing all the passing URLs joined and delimited by `; `.
 	- **Field Name**: If applying custom metadata, this is the name of the custom metadata field to be applied.
 - **URL Match Filters Tab**
-    - **Perform Filtering**: Whether to perform a secondary filtering pass on URLs located in EMLs.  This can allow you to filter to particular domains for example.  Un-check to get all URLs found.
-    - Listing of Java regular expressions that are used to filter which found URLs are recorded (considered as "passing").
-- **URL Regex**: The regular expression which will be used to locate URLs within each EML's contents.
+    - **Perform Filtering**: Whether to perform a secondary filtering pass on URLs located in EMLs.  This can allow you to filter to particular domains for example.  Un-check to report all URLs found.
+    - Listing of Java regular expressions that are used to filter which found URLs are recorded.  When **Perform Filtering** is checked, only URLs that match one of the provided regular expressions will be reported.
+- **URL Regex**: The regular expression which will be used to locate URLs within each EML's contents.  In most cases, you can leave this as is.
+
+# Cloning this Repository
+
+This script relies on code from [Nx](https://github.com/Nuix/Nx) to present a settings dialog and progress dialog.  This JAR file is not included in the repository (although it is included in release downloads).  If you clone this repository, you will also want to obtain a copy of Nx.jar by either:
+1. Building it from [the source](https://github.com/Nuix/Nx)
+2. Downloading an already built JAR file from the [Nx releases](https://github.com/Nuix/Nx/releases)
+
+Once you have a copy of Nx.jar, make sure to include it in the same directory as the script.
 
 # License
 
 ```
-Copyright 2018 Nuix
+Copyright 2019 Nuix
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.

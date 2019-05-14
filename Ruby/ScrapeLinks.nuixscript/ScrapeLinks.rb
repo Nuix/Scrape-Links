@@ -20,10 +20,12 @@ NuixConnection.setCurrentNuixVersion(NUIX_VERSION)
 dialog = TabbedCustomDialog.new("Scrape Links")
 # This makes it so script remembers settings last used
 dialog.enableStickySettings(File.join(File.dirname(__FILE__),"RecentSettings.json"))
+# Link back to GitHub
+dialog.setHelpUrl("https://github.com/Nuix/Scrape-Links")
 
 main_tab = dialog.addTab("main_tab","Main")
-main_tab.appendHeader("Directory for temporary EML export.")
-main_tab.appendDirectoryChooser("temp_directory","Temp Export Directory")
+main_tab.appendDirectoryChooser("temp_directory","EML Temp Export Directory")
+
 items_were_selected = (!$current_selected_items.nil? && $current_selected_items.size > 0)
 if items_were_selected
 	main_tab.appendRadioButton("use_selected_emails","Use #{$current_selected_items.size} Selected Items","input_group",true)
@@ -43,7 +45,7 @@ annotation_tab.enabledOnlyWhenChecked("custom_field_name","apply_custom_metadata
 
 filter_tab = dialog.addTab("filter_tab","URL Match Filters")
 filter_tab.appendCheckBox("perform_filtering","Perform Filtering",false)
-filter_tab.appendHeader("These are regular expressions which will be used to filter any URLs found in EML contents.")
+filter_tab.appendHeader("Only URLs which also match on of these regular expressions will be reported when 'Perform Filtering' is checked.")
 default_filters = [
 	"https?://[^\\.]+\\.google\\.com",
 ]
@@ -51,7 +53,7 @@ filter_tab.appendStringList("url_filters",default_filters)
 filter_tab.enabledOnlyWhenChecked("url_filters","perform_filtering")
 
 regex_tab = dialog.addTab("regex_tab","URL Regex")
-regex_tab.appendHeader("This is a Java regular expression used to locate URLs in EML contents.")
+regex_tab.appendHeader("This is a Java regular expression used to locate URLs in EML contents.  Most likely you will want to leave this as is.")
 regex_tab.appendTextArea("url_regex","","(http|https|ftp)\\://[a-zA-Z0-9\\-\\.]+\\.[a-zA-Z]{2,3}(:[a-zA-Z0-9]*)?/?([a-zA-Z0-9\\-\\._\\?\\,\\'/\\\\\\+&amp;%\\$#\\=~])*[^\\.\\,\\)\\(\\s\\\"]")
 # lets make text area monospaced font
 java_import java.awt.Font
@@ -123,6 +125,11 @@ if dialog.getDialogResult == true
 			:includeAttachments => false,
 			:path => "eml",
 		})
+
+		#Can only call this if the the licence has the feature "PRODUCTION_SET"
+		if $utilities.getLicence.hasFeature("PRODUCTION_SET")
+			exporter.setNumberingOptions({"createProductionSet" => false})
+		end
 
 		# Show user progress updates while exporting
 		pd.setMainProgress(0,items.size)
