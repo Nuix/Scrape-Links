@@ -16,6 +16,8 @@ LookAndFeelHelper.setWindowsIfMetal
 NuixConnection.setUtilities($utilities)
 NuixConnection.setCurrentNuixVersion(NUIX_VERSION)
 
+require_relative "EmlScraper.rb"
+
 # Build settings dialog
 dialog = TabbedCustomDialog.new("Scrape Links")
 # This makes it so script remembers settings last used
@@ -54,7 +56,7 @@ filter_tab.enabledOnlyWhenChecked("url_filters","perform_filtering")
 
 regex_tab = dialog.addTab("regex_tab","URL Regex")
 regex_tab.appendHeader("This is a Java regular expression used to locate URLs in EML contents.  Most likely you will want to leave this as is.")
-regex_tab.appendTextArea("url_regex","","(http|https|ftp)\\://[a-zA-Z0-9\\-\\.]+\\.[a-zA-Z]{2,3}(:[a-zA-Z0-9]*)?/?([a-zA-Z0-9\\-\\._\\?\\,\\'/\\\\\\+&amp;%\\$#\\=~])*[^\\.\\,\\)\\(\\s\\\"]")
+regex_tab.appendTextArea("url_regex","","(mailto|http|https|ftp)\\://[a-zA-Z0-9\\-\\.]+\\.[a-zA-Z]{2,3}(:[a-zA-Z0-9]*)?/?([a-zA-Z0-9\\-\\._\\?\\,\\'/\\\\\\+&amp;%\\$#\\=~])*[^\\.\\,\\)\\(\\s\\\"]")
 # lets make text area monospaced font
 java_import java.awt.Font
 dialog.getControl("url_regex").setFont(Font.new("Consolas",Font::PLAIN,12))
@@ -90,6 +92,10 @@ if dialog.getDialogResult == true
 		url_filters = values["url_filters"]
 		perform_filtering = values["perform_filtering"]
 
+		if perform_filtering
+			EmlScraper.filter_regexes = url_filters.map{|f| Pattern.compile(f,Pattern::CASE_INSENSITIVE) }
+		end
+
 		# Obtain the items we will be using, either by searching for all emails
 		# or filtering the user's selection to just emails
 		items = nil
@@ -116,35 +122,11 @@ if dialog.getDialogResult == true
 			filter_regexes = url_filters.map{|n|Pattern.compile(n,Pattern::CASE_INSENSITIVE)}
 		end
 
-		# Export emails as EMLs so we can easily scan through their contents
-		pd.setMainStatusAndLogIt("Exporting temporary EML files...")
-		exporter = $utilities.createBatchExporter(temp_directory)
-		exporter.addProduct("native",{
-			:naming => "guid",
-			:mailFormat => "eml",
-			:includeAttachments => false,
-			:path => "eml",
-		})
-
-		#Can only call this if the the licence has the feature "PRODUCTION_SET"
-		if $utilities.getLicence.hasFeature("PRODUCTION_SET")
-			exporter.setNumberingOptions({"createProductionSet" => false})
-		end
-
-		# Show user progress updates while exporting
-		pd.setMainProgress(0,items.size)
-		exporter.whenItemEventOccurs do |info|
-			pd.setMainProgress(info.getStageCount)
-			pd.setMainStatus("Exporting temporary EML files: #{info.getStage}")
-		end
-
-		# Perform the export
-		exporter.exportItems(items)
-
-		# Here we will be doing the actual work.  We will iterate each item, looking for the matching exported
-		# EML by GUID.  When we have a match we scan its contents for URLs
+		session = javax.mail.Session.getDefaultInstance(java.lang.System.getProperties,nil)
+		email_exporter = $utilities.getEmailExporter
 		items_to_tag = []
 		passing_url_count = 0
+		java.io.File.new(temp_directory).mkdirs
 
 		pd.setMainProgress(0,items.size)
 		pd.setMainStatusAndLogIt("Scanning Items...")
@@ -152,51 +134,29 @@ if dialog.getDialogResult == true
 
 		items.each_with_index do |item,index|
 			break if pd.abortWasRequested
-
 			pd.setMainProgress(index+1,items.size)
 			pd.setMainStatus("Scanning Items (#{index+1}/#{items.size})")
 
-			# Calculate where the export EML for this item should be located on the file system
-			temp_path = java.io.File.new(File.join(temp_directory,"eml",item.getGuid[0..2],"#{item.getGuid}.eml"))
+			begin
+				temp_file = java.io.File.new(File.join(temp_directory,"#{item.getGuid}.eml"))
+				email_exporter.exportItem(item,temp_file,{
+					"format" => "eml",
+					"includeAttachments" => false,
+				})
 
-			# Was there something there?
-			if !temp_path.exists
-				pd.logMessage("No EML exported for GUID #{item.getGuid}")
-			else
-				# Read in EML contents as string
-				eml_string = File.read(temp_path.getPath)
-				# Run our URL matching regex against it
-				matcher = url_regex.matcher(eml_string)
-				item_matching_urls = {}
-				while matcher.find
-					url = matcher.group(0)
-					# Are we performing secondary filtering on matches?
-					if perform_filtering
-						filter_regexes.each do |filter|
-							# Filter found URL
-							if filter.matcher(url).find
-								item_matching_urls[url] = true
-								break
-							end
-						end
-					else
-						item_matching_urls[url] = true
-					end
-				end
-
-				# Get the distinct matches we accepted and annotate them
-				item_matching_urls = item_matching_urls.keys
-				if item_matching_urls.size > 0
+				found_urls = EmlScraper.scrape_urls(temp_file)
+				if found_urls.size > 0
 					items_to_tag << item
-					passing_url_count += item_matching_urls.size
+					passing_url_count += found_urls.size
 					if apply_custom_metadata
-						item.getCustomMetadata[custom_field_name] = item_matching_urls.join("; ")
+						item.getCustomMetadata[custom_field_name] = found_urls.join("; ")
 					end
 				end
 				pd.setSubStatus("Passing URLs Found: #{passing_url_count}")
-
-				# Delete the EML we just looked at
-				temp_path.delete
+				temp_file.delete
+			rescue Exception => exc
+				pd.logMessage("Error while scraping #{item.getGuid}: #{exc.message}\n#{exc.backtrace.join("\n")}")
+				break
 			end
 		end
 

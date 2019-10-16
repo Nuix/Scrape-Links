@@ -2,7 +2,7 @@
 Scrape Links
 ============
 
-[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](http://www.apache.org/licenses/LICENSE-2.0) ![This script was last tested in Nuix 7.8](https://img.shields.io/badge/Script%20Tested%20in%20Nuix-7.8-green.svg)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](http://www.apache.org/licenses/LICENSE-2.0) ![This script was last tested in Nuix 8.0](https://img.shields.io/badge/Script%20Tested%20in%20Nuix-8.0-green.svg)
 
 View the GitHub project [here](https://github.com/Nuix/Scrape-Links) or download the latest release [here](https://github.com/Nuix/Scrape-Links/releases).
 
@@ -28,7 +28,9 @@ Hey Jason,
 
 The link's display text is preserved, but the URL it linked to is not.
 
-This script scrapes URLs from emails by first exporting them to a temporary location as EML files.  Since EML files are essentially a structured text format, this script is then able to use a regular expression to parse out URLs within each email.
+Each email is exported as an EML file to a temporary location.  The EML is then parsed/loaded into a [javax.mail.MimeMessage](https://javaee.github.io/javaee-spec/javadocs/javax/mail/internet/MimeMessage.html).  The body content parts are then iterated:
+- If a body content part is `text/html` then the body is further parsed by [Jsoup](https://jsoup.org/).  Against that a query for `a[href]` is ran and for each link the `href` value is captured.
+- If a body content part is `text/plain` then the URL regular expression is ran across its text to capture any URLs not in a link's `href` attribute.
 
 The parsed URLs can optionally be filtered further to just those of interest based on additional filter regular expressions you provide.  This could be used for example to only list URLs that link to a particular set of websites, etc.
 
