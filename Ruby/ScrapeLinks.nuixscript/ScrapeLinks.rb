@@ -155,7 +155,7 @@ if dialog.getDialogResult == true
 				pd.setSubStatus("Passing URLs Found: #{passing_url_count}")
 				temp_file.delete
 			rescue Exception => exc
-				pd.logMessage("Error while scraping #{item.getGuid}: #{exc.message}\n#{exc.backtrace.join("\n")}")
+				pd.logMessage("Error while scraping item with GUID #{item.getGuid}: #{exc.message}\n#{exc.backtrace.join("\n")}")
 				break
 			end
 		end
