@@ -40,6 +40,11 @@ annotation_tab = dialog.addTab("annotation_tab","Annotations")
 annotation_tab.appendCheckBox("tag_items","Tag Items with URLs",true)
 annotation_tab.appendTextField("tag_name","Tag Name","Scraped Links")
 annotation_tab.enabledOnlyWhenChecked("tag_name","tag_items")
+
+annotation_tab.appendCheckBox("tag_error_items","Tag Items that have Errors",true)
+annotation_tab.appendTextField("errored_tag_name","Errored Tag Name","Scraped Links|Error")
+annotation_tab.enabledOnlyWhenChecked("errored_tag_name","tag_error_items")
+
 annotation_tab.appendSeparator("")
 annotation_tab.appendCheckBox("apply_custom_metadata","Apply Custom Metadata",true)
 annotation_tab.appendTextField("custom_field_name","Field Name","Scraped Links")
@@ -64,6 +69,16 @@ dialog.getControl("url_regex").setFont(Font.new("Consolas",Font::PLAIN,12))
 dialog.validateBeforeClosing do |values|
 	if values["perform_filtering"] && values["url_filters"].size < 1
 		CommonDialogs.showWarning("Please provide at least 1 URL filter")
+		next false
+	end
+
+	if values["tag_items"] && values["tag_name"].strip.empty?
+		CommonDialogs.showWarning("Please provide value for 'Tag Name'.")
+		next false
+	end
+
+	if values["tag_error_items"] && values["errored_tag_name"].strip.empty?
+		CommonDialogs.showWarning("Please provide value for 'Errored Tag Name'.")
 		next false
 	end
 
@@ -156,7 +171,11 @@ if dialog.getDialogResult == true
 				temp_file.delete
 			rescue Exception => exc
 				pd.logMessage("Error while scraping item with GUID #{item.getGuid}: #{exc.message}\n#{exc.backtrace.join("\n")}")
-				break
+				
+				if values["tag_error_items"]
+					pd.logMessage("Applying error tag '#{values["errored_tag_name"]}' to item...")
+					$utilities.getBulkAnnotater.addTag(values["errored_tag_name"],item)
+				end
 			end
 		end
 
