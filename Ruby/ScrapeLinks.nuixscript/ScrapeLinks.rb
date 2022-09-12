@@ -171,9 +171,10 @@ if dialog.getDialogResult == true
 				pd.setSubStatus("Passing URLs Found: #{passing_url_count}")
 				temp_file.delete
 			rescue Exception => exc
-				pd.logMessage("Error while scraping item with GUID #{item.getGuid}: #{exc.message}\n#{exc.backtrace.join("\n")}")
+				pd.logMessage("Error while scraping item with GUID #{item.getGuid}: #{exc.message} (Nuix log contains stacktrace)")
+				puts "Error while scraping item with GUID #{item.getGuid}: #{exc.message}\n#{exc.backtrace.join("\n")}"
 				pd.logMessage("Applying error tag '#{errored_tag_name}' to item...")
-				$utilities.getBulkAnnotater.addTag(errored_tag_name,item)
+				item.addTag(errored_tag_name)
 				errored_item_count += 1
 			end
 		end
