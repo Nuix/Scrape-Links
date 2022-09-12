@@ -41,9 +41,7 @@ annotation_tab.appendCheckBox("tag_items","Tag Items with URLs",true)
 annotation_tab.appendTextField("tag_name","Tag Name","Scraped Links")
 annotation_tab.enabledOnlyWhenChecked("tag_name","tag_items")
 
-annotation_tab.appendCheckBox("tag_error_items","Tag Items that have Errors",true)
-annotation_tab.appendTextField("errored_tag_name","Errored Tag Name","Scraped Links|Error")
-annotation_tab.enabledOnlyWhenChecked("errored_tag_name","tag_error_items")
+annotation_tab.appendTextField("errored_tag_name","Tag Errored Items with","Scraped Links|Error")
 
 annotation_tab.appendSeparator("")
 annotation_tab.appendCheckBox("apply_custom_metadata","Apply Custom Metadata",true)
@@ -77,7 +75,7 @@ dialog.validateBeforeClosing do |values|
 		next false
 	end
 
-	if values["tag_error_items"] && values["errored_tag_name"].strip.empty?
+	if values["errored_tag_name"].strip.empty?
 		CommonDialogs.showWarning("Please provide value for 'Errored Tag Name'.")
 		next false
 	end
@@ -106,6 +104,7 @@ if dialog.getDialogResult == true
 		use_selected_emails = values["use_selected_emails"]
 		url_filters = values["url_filters"]
 		perform_filtering = values["perform_filtering"]
+		errored_tag_name = values["errored_tag_name"]
 
 		if perform_filtering
 			EmlScraper.filter_regexes = url_filters.map{|f| Pattern.compile(f,Pattern::CASE_INSENSITIVE) }
@@ -147,6 +146,8 @@ if dialog.getDialogResult == true
 		pd.setMainStatusAndLogIt("Scanning Items...")
 		pd.setAbortButtonVisible(true)
 
+		errored_item_count = 0
+
 		items.each_with_index do |item,index|
 			break if pd.abortWasRequested
 			pd.setMainProgress(index+1,items.size)
@@ -171,11 +172,9 @@ if dialog.getDialogResult == true
 				temp_file.delete
 			rescue Exception => exc
 				pd.logMessage("Error while scraping item with GUID #{item.getGuid}: #{exc.message}\n#{exc.backtrace.join("\n")}")
-				
-				if values["tag_error_items"]
-					pd.logMessage("Applying error tag '#{values["errored_tag_name"]}' to item...")
-					$utilities.getBulkAnnotater.addTag(values["errored_tag_name"],item)
-				end
+				pd.logMessage("Applying error tag '#{errored_tag_name}' to item...")
+				$utilities.getBulkAnnotater.addTag(errored_tag_name,item)
+				errored_item_count += 1
 			end
 		end
 
