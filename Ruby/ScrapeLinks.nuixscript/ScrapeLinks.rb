@@ -192,6 +192,11 @@ if dialog.getDialogResult == true
 		# Delete the temp directory we created earlier
 		pd.setMainStatusAndLogIt("Deleting temporary export directory...")
 		org.apache.commons.io.FileUtils.deleteDirectory(java.io.File.new(temp_directory))
+
+		pd.logMessage("Errored Item Count: #{errored_item_count}")
+		if errored_item_count > 0
+			pd.logMessage("!!! Review errored items by searching for tag: #{errored_tag_name}")
+		end
 		
 		# Finalize the progress dialog
 		pd.logMessage("Passing URLs Found: #{passing_url_count}")
