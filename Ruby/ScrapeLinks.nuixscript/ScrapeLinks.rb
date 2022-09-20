@@ -58,8 +58,8 @@ filter_tab.appendStringList("url_filters",default_filters)
 filter_tab.enabledOnlyWhenChecked("url_filters","perform_filtering")
 
 regex_tab = dialog.addTab("regex_tab","URL Regex")
-regex_tab.appendHeader("This is a Java regular expression used to locate URLs in EML contents.  Most likely you will want to leave this as is.")
-regex_tab.appendTextArea("url_regex","","(mailto|http|https|ftp)\\://[a-zA-Z0-9\\-\\.]+\\.[a-zA-Z]{2,3}(:[a-zA-Z0-9]*)?/?([a-zA-Z0-9\\-\\._\\?\\,\\'/\\\\\\+&amp;%\\$#\\=~])*[^\\.\\,\\)\\(\\s\\\"]")
+regex_tab.appendHeader("This is a Ruby regular expression used to locate URLs in EML contents.  Most likely you will want to leave this as is.")
+regex_tab.appendTextArea("url_regex","","(mailto|http|https|ftp)\\://[a-zA-Z0-9\\-\\.]+\\.[a-zA-Z]{2,3}(:[a-zA-Z0-9]*)?/?([a-zA-Z0-9\\-\\._\\?\\,\\'/\\\\\\+&amp;%\\$#\\=~])*[^\\.\\,\\)\\(\\s\\\"\\<\\>]")
 # lets make text area monospaced font
 java_import java.awt.Font
 dialog.getControl("url_regex").setFont(Font.new("Consolas",Font::PLAIN,12))
@@ -98,7 +98,6 @@ if dialog.getDialogResult == true
 		# Get values from settings dialog		
 		values = dialog.toMap
 		temp_directory = values["temp_directory"]
-		url_regex = Pattern.compile(values["url_regex"],Pattern::CASE_INSENSITIVE)
 		apply_custom_metadata = values["apply_custom_metadata"]
 		custom_field_name = values["custom_field_name"]
 		use_selected_emails = values["use_selected_emails"]
@@ -109,6 +108,8 @@ if dialog.getDialogResult == true
 		if perform_filtering
 			EmlScraper.filter_regexes = url_filters.map{|f| Pattern.compile(f,Pattern::CASE_INSENSITIVE) }
 		end
+
+		EmlScraper.url_capture_regex = values["url_regex"]
 
 		# Obtain the items we will be using, either by searching for all emails
 		# or filtering the user's selection to just emails
