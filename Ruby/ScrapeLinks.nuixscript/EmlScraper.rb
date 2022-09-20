@@ -9,6 +9,9 @@ class EmlScraper
 	end
 
 	def self.url_capture_regex=(value)
+		if value.is_a?(String)
+			value = /(#{value})/
+		end
 		@url_capture_regex = value
 	end
 
@@ -22,19 +25,40 @@ class EmlScraper
 		mime_message = build_mime_message(eml_file)
 		if mime_message.isMimeType("multipart/*")
 			mime_multi_part = mime_message.getContent
-			mime_multi_part.getCount.times do |i|
-				body_part = mime_multi_part.getBodyPart(i)
-				if body_part.isMimeType("text/html")
-					get_link_urls(body_part).each do |url|
-						found_urls[url] = true
-					end
-				elsif body_part.isMimeType("text/plain") && !@url_capture_regex.nil?
-					text = body_part.getContent
-					text.scan(@url_capture_regex).each do |matched_url|
-						found_urls[matched_url] = true
-					end
-				end
+			scrape_urls_multipart(mime_multi_part).each{|key|found_urls[key]=true}
+		end
+		return found_urls.keys
+	end
+
+	def self.scrape_urls_multipart(mime_multi_part)
+		found_urls = {}
+		mime_multi_part.getCount.times do |i|
+			body_part = mime_multi_part.getBodyPart(i)
+			if body_part.isMimeType("text/html")
+				scrape_urls_html(body_part).each{|key|found_urls[key]=true}
+			elsif body_part.isMimeType("text/plain") && !@url_capture_regex.nil?
+				scrape_urls_plain(body_part).each{|key|found_urls[key]=true}
+			elsif body_part.isMimeType("multipart/*")
+				scrape_urls_multipart(body_part.getContent).each{|key|found_urls[key]=true}
 			end
+		end
+		return found_urls.keys
+	end
+
+	def self.scrape_urls_html(body_part)
+		found_urls = {}
+		get_link_urls(body_part).each do |url|
+			found_urls[url] = true
+		end
+		return found_urls.keys
+	end
+
+	def self.scrape_urls_plain(body_part)
+		found_urls = {}
+		text = body_part.getContent
+		text.scan(@url_capture_regex).each do |matched_url|
+			puts matched_url.inspect
+			found_urls[matched_url[0]] = true
 		end
 		return found_urls.keys
 	end
